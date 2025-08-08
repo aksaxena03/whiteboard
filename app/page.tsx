@@ -1,103 +1,127 @@
-import Image from "next/image";
+"use client";
+import { LucideCircle, LucideLetterText, LucidePencil, LucideRectangleHorizontal, LucideText, LucideTimerReset, LucideUndo, LucideZoomIn, LucideZoomOut } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import initdraw from "./canvas/index";
 
-export default function Home() {
+function Canvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [stage, setStage] = useState<"pencil" | "rect" | "circle" | "text"|"">("");
+  const undoRef = useRef<(() => void) | null>(null);
+  const getShapeCountRef = useRef<(() => number) | null>(null);
+  const [shapeCount, setShapeCount] = useState(0);
+  const [size, setSize] = useState({ "width": 0, "height": 0 })
+  const zoomInRef = useRef<(() => void) | null>(null);
+  const zoomOutRef = useRef<(() => void) | null>(null);
+  const resetViewRef = useRef<(() => void) | null>(null);
+  // Add a ref to store the cleanup function
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+
+  useEffect(() => {
+    // Set initial size
+    setSize({ width: window.innerWidth, height: window.innerHeight });
+    // Handler for resize
+    const handleResize = () => {
+      setSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener('resize', handleResize);
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  useEffect(() => {
+    if (canvasRef.current) {
+      // Clean up previous instance if it exists
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
+
+      initdraw(canvasRef.current, stage).then((api) => {
+        if (api) {
+          // Store the cleanup function
+          cleanupRef.current = api.destroy;
+          
+          // Store other api functions
+          if (api.undoLastShape) {
+            undoRef.current = api.undoLastShape;
+          }
+          if (api.getShapeCount) {
+            getShapeCountRef.current = api.getShapeCount;
+            setShapeCount(api.getShapeCount());
+          }
+          if (api.zoomIn) {
+            zoomInRef.current = api.zoomIn;
+          }
+          if (api.zoomOut) {
+            zoomOutRef.current = api.zoomOut;
+          }
+          if (api.resetView) {
+            resetViewRef.current = api.resetView;
+          }
+        }
+      });
+    }
+
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
+    };
+  }, [canvasRef, stage]);
+
+
+  
+  // Update shape count after undo
+  const handleUndo = () => {
+    if (undoRef.current) {
+      undoRef.current();
+      if (getShapeCountRef.current) {
+        setShapeCount(getShapeCountRef.current());
+      }
+    }
+  };
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        handleUndo();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="w-screen h-screen ">
+      <canvas className="" ref={canvasRef} width={size.width} height={size.height}></canvas>
+      <div className="left-0 flex top-20  absolute z-10 bg-gray-500 rounded-3xl">
+        <div className="flex flex-col justify-between w-max m-.5 items-center p-3 ">
+          <button
+            className={`cursor-pointer  ${stage === "pencil" ? "text-white" : "text-black"}`
+            } title="Pencil" onClick={() => setStage("pencil")}> <LucidePencil /> </button>
+          <button
+            className={`mt-1 cursor-pointer ${stage === "circle" ? "text-white" : "text-black"}`
+            } title="Circle" onClick={() => setStage("circle")}> <LucideCircle /> </button>
+          <button
+            className={`mt-1 cursor-pointer ${stage === "rect" ? "text-white" : "text-black"}`}
+            title="Rectangle"
+             onClick={() => setStage("rect")}> <LucideRectangleHorizontal /> </button>
+          <button
+            className={`mt-1 cursor-pointer ${stage === "text" ? "text-white" : "text-black"}`}
+            title="Text"
+             onClick={() => setStage("text")}><LucideText/></button>
+          <button
+            onClick={handleUndo}
+            title="Undo (Ctrl+Z)"
+            disabled={shapeCount === 0}
+            className={shapeCount === 0 ? " opacity-50 cursor-not-allowed mt-1" : "mt-1"}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <LucideUndo />
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
+
+export default Canvas;
