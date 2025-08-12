@@ -1,5 +1,5 @@
 "use client";
-import { LucideCircle, LucideLetterText, LucidePencil, LucideRectangleHorizontal, LucideText, LucideTimerReset, LucideUndo, LucideZoomIn, LucideZoomOut } from "lucide-react";
+import { LucideCircle, LucidePencil, LucideRectangleHorizontal, LucideText, LucideUndo, } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import initdraw from "./canvas/index";
 
@@ -10,10 +10,6 @@ function Canvas() {
   const getShapeCountRef = useRef<(() => number) | null>(null);
   const [shapeCount, setShapeCount] = useState(0);
   const [size, setSize] = useState({ "width": 0, "height": 0 })
-  const zoomInRef = useRef<(() => void) | null>(null);
-  const zoomOutRef = useRef<(() => void) | null>(null);
-  const resetViewRef = useRef<(() => void) | null>(null);
-  // Add a ref to store the cleanup function
   const cleanupRef = useRef<(() => void) | null>(null);
 
 
@@ -47,15 +43,6 @@ function Canvas() {
           if (api.getShapeCount) {
             getShapeCountRef.current = api.getShapeCount;
             setShapeCount(api.getShapeCount());
-          }
-          if (api.zoomIn) {
-            zoomInRef.current = api.zoomIn;
-          }
-          if (api.zoomOut) {
-            zoomOutRef.current = api.zoomOut;
-          }
-          if (api.resetView) {
-            resetViewRef.current = api.resetView;
           }
         }
       });

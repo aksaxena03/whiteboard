@@ -1,8 +1,3 @@
-// import { HTTP_BACKEND } from "@/config"
-// import axios from "axios"
-
-import { LucideIcon, LucidePencil, Pencil } from "lucide-react";
-
 type Shape =
     | { type: "rect", x: number, y: number, width: number, height: number }
     | { type: "pencil", points: { x: number, y: number }[] }
@@ -10,7 +5,7 @@ type Shape =
     | { type: "text", x: number, y: number, text: string };
 
 // Persist shapes across tool changes
-let existingShape: Shape[] = [];
+const existingShape: Shape[] = [];
 
 export default async function initdraw(canvas: HTMLCanvasElement, types: string) {
 
@@ -21,7 +16,7 @@ export default async function initdraw(canvas: HTMLCanvasElement, types: string)
     const maxScale = 5;
     const scaleStep = 0.1;
     const ctx = canvas.getContext("2d")
-    let typeStages = types.toString()
+    const typeStages = types.toString()
     console.log(typeStages)
 
 
@@ -36,13 +31,7 @@ export default async function initdraw(canvas: HTMLCanvasElement, types: string)
     let startx = 0
     let starty = 0;
     let currentPencil: { x: number, y: number }[] | null = null;
-    let currentText: { x: number, y: number, text: string } | null = null;
-    let isPanning = false;
-    let panStartX = 0;
-    let panStartY = 0;
-    let lastOffsetX = 0;
-    let lastOffsetY = 0;
-    let spacePressed = false;
+    // let currentText: { x: number, y: number, text: string } | null = null;
 
     canvas.addEventListener('mousedown', mouseDownHandler);
     canvas.addEventListener('mousemove',mousemovingHandler);
@@ -68,31 +57,12 @@ export default async function initdraw(canvas: HTMLCanvasElement, types: string)
         clearCanvas(existingShape, canvas, ctx!);
     }, { passive: false });
 
-    window.addEventListener('keydown', (e) => {
-        if (e.code === 'Space') {
-            spacePressed = true;
-        }
-    });
-    window.addEventListener('keyup', (e) => {
-        if (e.code === 'Space') {
-            spacePressed = false;
-        }
-    });
-
 
     function mouseDownHandler(e: MouseEvent) {
 
  // Always reset tool-specific state on mousedown
 
-        if (spacePressed && e.button === 0) {
-            isPanning = true;
-            panStartX = e.clientX;
-            panStartY = e.clientY;
-            lastOffsetX = offsetX;
-            lastOffsetY = offsetY;
-            canvas.style.cursor = 'grab';
-            return;
-        }
+        
             
         if (typeStages === "rect") {
             canvas.style.cursor = 'crosshair';
@@ -139,12 +109,6 @@ export default async function initdraw(canvas: HTMLCanvasElement, types: string)
                
     }
     function mousemovingHandler(e: MouseEvent) {
-if (isPanning) {
-            offsetX = lastOffsetX + (e.clientX - panStartX);
-            offsetY = lastOffsetY + (e.clientY - panStartY);
-            clearCanvas(existingShape, canvas, ctx!);
-            return;
-        }
         if (!moving) return;
         ctx!.lineWidth = 3;
         ctx!.lineCap = 'round';
@@ -170,11 +134,7 @@ if (isPanning) {
 
     }
     function mouseUpHandler(e: MouseEvent) {
-         if (isPanning) {
-            isPanning = false;
-            canvas.style.cursor = '';
-            return;
-        }
+         
         moving = false;
         const width = e.clientX - startx;
         const height = e.clientY - starty;
@@ -357,33 +317,7 @@ if (isPanning) {
         return existingShape.length;
     }
 
-    function zoomIn() {
-        const rect = canvas.getBoundingClientRect();
-        const centerX = (rect.width / 2 - offsetX) / scale;
-        const centerY = (rect.height / 2 - offsetY) / scale;
-        let newScale = Math.min(maxScale, scale + scaleStep);
-        offsetX -= (centerX * newScale - centerX * scale);
-        offsetY -= (centerY * newScale - centerY * scale);
-        scale = newScale;
-        clearCanvas(existingShape, canvas, ctx!);
-    }
-    function zoomOut() {
-        const rect = canvas.getBoundingClientRect();
-        const centerX = (rect.width / 2 - offsetX) / scale;
-        const centerY = (rect.height / 2 - offsetY) / scale;
-        let newScale = Math.max(minScale, scale - scaleStep);
-        offsetX -= (centerX * newScale - centerX * scale);
-        offsetY -= (centerY * newScale - centerY * scale);
-        scale = newScale;
-        clearCanvas(existingShape, canvas, ctx!);
-    }
+    
 
-    function resetView() {
-        scale = 1;
-        offsetX = 0;
-        offsetY = 0;
-        clearCanvas(existingShape, canvas, ctx!);
-    }
-
-    return { undoLastShape, getShapeCount, zoomIn, zoomOut, resetView,destroy };
+    return { undoLastShape, getShapeCount,destroy };
 }
